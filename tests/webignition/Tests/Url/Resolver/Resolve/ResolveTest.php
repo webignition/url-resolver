@@ -7,10 +7,18 @@ use webignition\Url\Resolver\Resolver;
 
 class ResolveTest extends BaseTest {
     
-    public function testTest() {
-        $url = 'http://example.com/';
-        $resolver = new Resolver();
-        $this->assertEquals($url, $resolver->resolve($url));
+    const SOURCE_URL = 'http://example.com/';
+    const EFFECTIVE_URL = 'http://www.example.com/';    
+    
+    public function testNoHttpRedirect() {
+        $this->setHttpFixtures($this->buildHttpFixtureSet(array(
+            "HTTP/1.0 200 OK",
+        )));
+
+        $resolver = new Resolver();        
+        $resolver->getConfiguration()->setBaseRequest($this->getHttpClient()->get());
+        
+        $this->assertEquals(self::SOURCE_URL, $resolver->resolve(self::SOURCE_URL));
     }
     
 }
