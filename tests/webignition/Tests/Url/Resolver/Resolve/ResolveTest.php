@@ -10,6 +10,8 @@ class ResolveTest extends BaseTest {
     const SOURCE_URL = 'http://example.com/';
     const EFFECTIVE_URL = 'http://www.example.com/';    
     
+    // test with 404 (retry without url encoding) that gets 301
+    
     public function testNoHttpRedirect() {
         $this->setHttpFixtures($this->buildHttpFixtureSet(array(
             "HTTP/1.0 200 OK",
