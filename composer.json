@@ -1,0 +1,29 @@
+{
+    "name": "webignition/url-resolver",
+    "description": "Resolve a given URL to the URL it actually points to; follow 30X and meta redirects to achieve this",
+    "keywords": ["url", "resolver"],
+    "homepage": "https://github.com/webignition/url-resolver",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Jon Cram",
+            "email": "jon@webignition.net"
+        }
+    ],
+    "autoload": {
+        "psr-0": {
+            "webignition\\Tests": "tests/",
+            "": "src/"
+        }
+    },   
+    "require": {
+        "php": ">=5.3.0",
+        "guzzle/guzzle":">=3.8.0,<4"
+    },
+    "require-dev": {
+        "symfony/class-loader": "*",
+        "phpunit/phpunit": "3.7.*"
+    },            
+    "minimum-stability":"stable"
+}
