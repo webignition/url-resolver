@@ -54,12 +54,17 @@ class Resolver {
         $request = clone $this->getConfiguration()->getBaseRequest();
         $request->setUrl($url);
         
+        return $this->resolveRequest($request);
+    }
+    
+    
+    private function resolveRequest(\Guzzle\Http\Message\Request $request) {
         try {
             $this->lastResponse = $request->send();
         } catch (\Guzzle\Http\Exception\BadResponseException $badResponseException) {                                    
             if ($this->getConfiguration()->getRetryWithUrlEncodingDisabled() && !$this->getConfiguration()->getHasRetriedWithUrlEncodingDisabled()) {
-                $this->getConfiguration()->setHasRetriedWithUrlEncodingDisabled(true);                
-                $this->lastResponse = $this->deEncodeRequestUrl($request)->send();             
+                $this->getConfiguration()->setHasRetriedWithUrlEncodingDisabled(true);
+                return $this->resolveRequest($this->deEncodeRequestUrl($request));
             } else {
                 $this->lastResponse = $badResponseException->getResponse();
             }            
@@ -76,7 +81,7 @@ class Resolver {
             }
         }
         
-        return $this->lastResponse->getEffectiveUrl();
+        return $this->lastResponse->getEffectiveUrl();        
     }
     
     
