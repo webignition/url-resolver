@@ -31,7 +31,14 @@ class Configuration {
      *
      * @var boolean
      */
-    private $hasTriedWithUrlEncodingDisabled = false;    
+    private $hasTriedWithUrlEncodingDisabled = false; 
+    
+    
+    /**
+     *
+     * @var array
+     */
+    private $cookies = array();      
     
     
     /**
@@ -135,5 +142,25 @@ class Configuration {
     public function getHasRetriedWithUrlEncodingDisabled() {
         return $this->hasTriedWithUrlEncodingDisabled;
     }    
+    
+    
+    /**
+     * 
+     * @param array $cookies
+     * @return \webignition\Url\Resolver\Configuration\Configuration
+     */
+    public function setCookies($cookies) {
+        $this->cookies = $cookies;
+        return $this;
+    }
+    
+    
+    /**
+     * 
+     * @return array
+     */
+    public function getCookies() {
+        return $this->cookies;
+    }      
 
 }
