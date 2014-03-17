@@ -29,10 +29,28 @@ abstract class BaseTest extends \PHPUnit_Framework_TestCase {
     protected function getHttpClient() {
         if (is_null($this->httpClient)) {
             $this->httpClient = new HttpClient();
+            $this->httpClient->addSubscriber(new \Guzzle\Plugin\History\HistoryPlugin());
         }
         
         return $this->httpClient;
-    }      
+    } 
+    
+    
+    /**
+     * 
+     * @return \Guzzle\Plugin\History\HistoryPlugin|null
+     */
+    protected function getHttpHistory() {
+        $listenerCollections = $this->getHttpClient()->getEventDispatcher()->getListeners('request.sent');
+        
+        foreach ($listenerCollections as $listener) {
+            if ($listener[0] instanceof \Guzzle\Plugin\History\HistoryPlugin) {
+                return $listener[0];
+            }
+        }
+        
+        return null;     
+    }     
 
     
     /**

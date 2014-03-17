@@ -54,8 +54,28 @@ class Resolver {
         $request = clone $this->getConfiguration()->getBaseRequest();
         $request->setUrl($url);
         
+        $this->setRequestCookies($request);
+        
         return $this->resolveRequest($request);
     }
+    
+    
+    private function setRequestCookies(\Guzzle\Http\Message\Request $request) {
+        if (!is_null($request->getCookies())) {
+            foreach ($request->getCookies() as $name => $value) {
+                $request->removeCookie($name);
+            }
+        }
+        
+        
+        $cookieUrlMatcher = new \webignition\Cookie\UrlMatcher\UrlMatcher();
+        
+        foreach ($this->getConfiguration()->getCookies() as $cookie) {
+            if ($cookieUrlMatcher->isMatch($cookie, $request->getUrl())) {
+                $request->addCookie($cookie['name'], $cookie['value']);
+            }
+        } 
+    }    
     
     
     private function resolveRequest(\Guzzle\Http\Message\Request $request) {
