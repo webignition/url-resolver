@@ -9,7 +9,22 @@ class ResolveTest extends BaseTest {
     
     const SOURCE_URL = 'http://example.com/';
     const EFFECTIVE_URL = 'http://www.example.com/';
+    
+    public function testTooManyRedirects() {
+        $this->setHttpFixtures($this->buildHttpFixtureSet(array(
+            "HTTP/1.0 301\nLocation: " . self::SOURCE_URL,
+            "HTTP/1.0 301\nLocation: " . self::SOURCE_URL,
+            "HTTP/1.0 301\nLocation: " . self::SOURCE_URL,
+            "HTTP/1.0 301\nLocation: " . self::SOURCE_URL,            
+            "HTTP/1.0 301\nLocation: " . self::EFFECTIVE_URL,            
+            "HTTP/1.0 200 OK",
+        )));
 
+        $resolver = new Resolver();        
+        $resolver->getConfiguration()->setBaseRequest($this->getHttpClient()->get());
+        
+        $this->assertEquals(self::EFFECTIVE_URL, $resolver->resolve(self::SOURCE_URL));        
+    }
     
     public function testNoHttpRedirect() {
         $this->setHttpFixtures($this->buildHttpFixtureSet(array(

@@ -78,9 +78,11 @@ class Resolver {
     }    
     
     
-    private function resolveRequest(\Guzzle\Http\Message\Request $request) {
+    private function resolveRequest(\Guzzle\Http\Message\Request $request) {        
         try {
             $this->lastResponse = $request->send();
+        } catch (\Guzzle\Http\Exception\TooManyRedirectsException $tooManyRedirectsException) {            
+            $this->lastResponse = $this->getRequestHistory($request)->getLastResponse();           
         } catch (\Guzzle\Http\Exception\BadResponseException $badResponseException) {                                    
             if ($this->getConfiguration()->getRetryWithUrlEncodingDisabled() && !$this->getConfiguration()->getHasRetriedWithUrlEncodingDisabled()) {
                 $this->getConfiguration()->setHasRetriedWithUrlEncodingDisabled(true);
@@ -102,6 +104,24 @@ class Resolver {
         }
         
         return $this->lastResponse->getEffectiveUrl();        
+    }
+    
+    
+    /**
+     * 
+     * @param \Guzzle\Http\Message\Request $request
+     * @return \Guzzle\Plugin\History\HistoryPlugin|null
+     */
+    private function getRequestHistory(\Guzzle\Http\Message\Request $request) {
+        $requestSentListeners = $request->getClient()->getEventDispatcher()->getListeners('request.sent');
+        
+        foreach ($requestSentListeners as $requestSentListener) {
+            if ($requestSentListener[0] instanceof \Guzzle\Plugin\History\HistoryPlugin) {
+                return $requestSentListener[0];
+            }
+        }            
+        
+        return null;
     }
     
     
@@ -175,7 +195,7 @@ class Resolver {
     }
     
     
-    private function getWebPageFromLastResponse() {
+    private function getWebPageFromLastResponse() {        
         if (!$this->getLastResponse()->hasHeader('Content-Type')) {
             return null;
         }
