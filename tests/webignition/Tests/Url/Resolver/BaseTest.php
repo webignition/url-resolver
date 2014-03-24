@@ -23,17 +23,33 @@ abstract class BaseTest extends \PHPUnit_Framework_TestCase {
     
     
     /**
+     *
+     * @var boolean
+     */
+    protected $includeHistoryPlugin = true;
+    
+    
+    public function setUp() {
+        parent::setUp();
+        $this->includeHistoryPlugin = true;
+    }
+    
+    
+    /**
      * 
      * @return \Guzzle\Http\Client
      */
     protected function getHttpClient() {
         if (is_null($this->httpClient)) {
             $this->httpClient = new HttpClient();
-            $this->httpClient->addSubscriber(new \Guzzle\Plugin\History\HistoryPlugin());
+            
+            if ($this->includeHistoryPlugin) {
+                $this->httpClient->addSubscriber(new \Guzzle\Plugin\History\HistoryPlugin());
+            }
         }
         
         return $this->httpClient;
-    } 
+    }
     
     
     /**

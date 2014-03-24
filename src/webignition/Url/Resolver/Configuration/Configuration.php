@@ -75,9 +75,7 @@ class Configuration {
      * @param \Guzzle\Http\Message\Request $request
      * @return \webignition\Url\Resolver\Configuration\Configuration
      */
-    public function setBaseRequest(\Guzzle\Http\Message\Request $request) {
-        $this->enableRequestHttpClientHistoryPlugin($request);
-        
+    public function setBaseRequest(\Guzzle\Http\Message\Request $request) {        
         $this->baseRequest = $request;
         return $this;
     }    
@@ -90,41 +88,11 @@ class Configuration {
     public function getBaseRequest() {
         if (is_null($this->baseRequest)) {
             $client = new \Guzzle\Http\Client;            
+            $client->addSubscriber(new \Guzzle\Plugin\History\HistoryPlugin());
             $this->baseRequest = $client->get();
-            $this->enableRequestHttpClientHistoryPlugin($this->request);
-            
         }
         
         return $this->baseRequest;
-    }
-    
-    
-    /**
-     * 
-     * @param \Guzzle\Http\Message\Request $request
-     */
-    private function enableRequestHttpClientHistoryPlugin(\Guzzle\Http\Message\Request $request) {
-        if (!$this->hasRequestHttpClientHistoryPlugin($request)) {
-            $request->getClient()->addSubscriber(new \Guzzle\Plugin\History\HistoryPlugin());
-        }
-    }
-    
-    
-    /**
-     * 
-     * @param \Guzzle\Http\Message\Request $request
-     * @return boolean
-     */
-    private function hasRequestHttpClientHistoryPlugin(\Guzzle\Http\Message\Request $request) {
-        $requestSentListeners = $request->getClient()->getEventDispatcher()->getListeners('request.sent');
-        
-        foreach ($requestSentListeners as $requestSentListener) {
-            if ($requestSentListener[0] instanceof \Guzzle\Plugin\History\HistoryPlugin) {
-                return true;
-            }
-        }        
-        
-        return false;
     }
     
     

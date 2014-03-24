@@ -82,7 +82,11 @@ class Resolver {
         try {
             $this->lastResponse = $request->send();
         } catch (\Guzzle\Http\Exception\TooManyRedirectsException $tooManyRedirectsException) {            
-            $this->lastResponse = $this->getRequestHistory($request)->getLastResponse();           
+            if ($this->hasRequestHistory($request)) {
+                $this->lastResponse = $this->getRequestHistory($request)->getLastResponse(); 
+            } else {
+                return $request->getUrl();
+            }                      
         } catch (\Guzzle\Http\Exception\BadResponseException $badResponseException) {                                    
             if ($this->getConfiguration()->getRetryWithUrlEncodingDisabled() && !$this->getConfiguration()->getHasRetriedWithUrlEncodingDisabled()) {
                 $this->getConfiguration()->setHasRetriedWithUrlEncodingDisabled(true);
@@ -104,6 +108,16 @@ class Resolver {
         }
         
         return $this->lastResponse->getEffectiveUrl();        
+    }
+    
+    
+    /**
+     * 
+     * @param \Guzzle\Http\Message\Request $request
+     * @return boolean
+     */
+    private function hasRequestHistory(\Guzzle\Http\Message\Request $request) {
+        return !is_null($this->getRequestHistory($request));
     }
     
     
