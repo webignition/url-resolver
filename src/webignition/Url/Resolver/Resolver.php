@@ -215,9 +215,8 @@ class Resolver {
         }
         
         try {
-            $webPage = new \webignition\WebResource\WebPage\WebPage;
-            $webPage->setContentType($this->getLastResponse()->getHeader('Content-Type'));
-            $webPage->setContent($this->getLastResponse()->getBody(true));
+            $webPage = new \webignition\WebResource\WebPage\WebPage();
+            $webPage->setHttpResponse($this->getLastResponse());
             return $webPage;
         } catch (\webignition\WebResource\Exception $webResourceException) {
             return null;
