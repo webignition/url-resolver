@@ -2,6 +2,7 @@
 
 namespace webignition\Tests\Url\Resolver;
 
+use GuzzleHttp\Exception\ConnectException;
 use webignition\Tests\Url\Resolver\Factory\HttpFixtureFactory;
 use webignition\Url\Resolver\Configuration;
 use GuzzleHttp\Client as HttpClient;
@@ -38,6 +39,24 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
     {
         $resolver = new Resolver();
         $this->assertInstanceOf(Configuration::class, $resolver->getConfiguration());
+    }
+
+    public function testResolveTimeout()
+    {
+        $configuration = new Configuration([
+            Configuration::CONFIG_KEY_TIMEOUT_MS => 1,
+        ]);
+
+        $resolver = new Resolver($configuration);
+
+        $this->setHttpFixtures([
+            HttpFixtureFactory::createSuccessResponse(),
+        ]);
+
+        $this->expectException(ConnectException::class);
+        $this->expectExceptionMessage('cURL error 28: Resolving timed out after');
+
+        $resolver->resolve('http://example.com/');
     }
 
     /**

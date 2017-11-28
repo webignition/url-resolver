@@ -60,8 +60,17 @@ class Resolver
      */
     public function resolve($url)
     {
-        $httpClient = $this->configuration->getHttpClient();
-        $request = $httpClient->createRequest('GET', $url);
+        $requestOptions = [];
+
+        $configuration = $this->getConfiguration();
+        $timeoutMs = $configuration->getTimeoutMs();
+
+        if (!empty($timeoutMs)) {
+            $requestOptions['timeout'] = $timeoutMs / 1000;
+        }
+
+        $httpClient = $configuration->getHttpClient();
+        $request = $httpClient->createRequest('GET', $url, $requestOptions);
 
         return $this->resolveRequest($request);
     }
