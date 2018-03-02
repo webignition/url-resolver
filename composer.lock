@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
         "This file is @generated automatically"
     ],
-    "content-hash": "80ff1ebdde8be0414b21d5b1c75f9628",
+    "content-hash": "0b87d7c8007bf98c3d47c6558b994848",
     "packages": [
         {
             "name": "doctrine/collections",
@@ -760,16 +760,16 @@
         },
         {
             "name": "webignition/web-page-model",
-            "version": "1.2",
+            "version": "1.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webignition/web-page-model.git",
-                "reference": "dbee915f5a81807319a28f0707b07b2fe3e08cd4"
+                "reference": "885c7b77d7a70a44ce950c84ac5cfc080f3a0cd4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webignition/web-page-model/zipball/dbee915f5a81807319a28f0707b07b2fe3e08cd4",
-                "reference": "dbee915f5a81807319a28f0707b07b2fe3e08cd4",
+                "url": "https://api.github.com/repos/webignition/web-page-model/zipball/885c7b77d7a70a44ce950c84ac5cfc080f3a0cd4",
+                "reference": "885c7b77d7a70a44ce950c84ac5cfc080f3a0cd4",
                 "shasum": ""
             },
             "require": {
@@ -777,7 +777,7 @@
                 "querypath/querypath": ">=3.0.0",
                 "webignition/character-set-list": ">=0.2,<1.0",
                 "webignition/internet-media-type": ">=0.1,<1.0",
-                "webignition/web-resource-model": ">=1.3.1,<2"
+                "webignition/web-resource-model": ">=1.3,<2"
             },
             "require-dev": {
                 "mockery/mockery": "^0.9",
@@ -791,18 +791,7 @@
                     "webignition\\Tests\\WebResource\\WebPage\\": "tests/"
                 }
             },
-            "scripts": {
-                "test": [
-                    "./vendor/bin/phpunit --colors=always"
-                ],
-                "cs": [
-                    "./vendor/bin/phpcs src tests --colors --standard=PSR2"
-                ],
-                "ci": [
-                    "@composer cs",
-                    "@composer test"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -818,15 +807,11 @@
                 "model",
                 "webpage"
             ],
-            "support": {
-                "source": "https://github.com/webignition/web-page-model/tree/1.2",
-                "issues": "https://github.com/webignition/web-page-model/issues"
-            },
-            "time": "2018-03-01T18:05:01+00:00"
+            "time": "2018-03-02T07:47:04+00:00"
         },
         {
             "name": "webignition/web-resource-model",
-            "version": "1.3.1",
+            "version": "1.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webignition/web-resource-model.git",
@@ -856,18 +841,7 @@
                     "webignition\\Tests\\WebResource\\": "tests/"
                 }
             },
-            "scripts": {
-                "test": [
-                    "./vendor/bin/phpunit --colors=always"
-                ],
-                "cs": [
-                    "./vendor/bin/phpcs src tests --colors --standard=PSR2"
-                ],
-                "ci": [
-                    "@composer cs",
-                    "@composer test"
-                ]
-            },
+            "notification-url": "https://packagist.org/downloads/",
             "license": [
                 "MIT"
             ],
@@ -883,10 +857,6 @@
                 "modem",
                 "web"
             ],
-            "support": {
-                "source": "https://github.com/webignition/web-resource-model/tree/1.3.1",
-                "issues": "https://github.com/webignition/web-resource-model/issues"
-            },
             "time": "2018-03-01T16:50:26+00:00"
         },
         {
