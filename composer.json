@@ -29,16 +29,6 @@
             "@composer test"
         ]
     },
-    "repositories": [
-        {
-            "type": "vcs",
-            "url": "https://github.com/webignition/web-resource-model"
-        },
-        {
-            "type": "vcs",
-            "url": "https://github.com/webignition/web-page-model"
-        }
-    ],
     "require": {
         "php": ">=5.6.0",
         "guzzlehttp/guzzle":"~5",
