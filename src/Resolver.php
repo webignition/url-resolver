@@ -1,11 +1,14 @@
 <?php
+
 namespace webignition\Url\Resolver;
 
+use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Exception\BadResponseException;
 use GuzzleHttp\Exception\TooManyRedirectsException;
 use GuzzleHttp\Message\RequestInterface;
 use GuzzleHttp\Message\ResponseInterface;
 use GuzzleHttp\Subscriber\History as HttpHistorySubscriber;
+use QueryPath\Exception as QueryPathException;
 use webignition\AbsoluteUrlDeriver\AbsoluteUrlDeriver;
 use webignition\NormalisedUrl\NormalisedUrl;
 use webignition\WebResource\Exception as WebResourceException;
@@ -13,10 +16,22 @@ use webignition\WebResource\WebPage\WebPage;
 
 class Resolver
 {
+    const DEFAULT_FOLLOW_META_REDIRECTS = true;
+    const DEFAULT_TIMEOUT_MS = 0;
     /**
-     * @var Configuration
+     * @var HttpClient
      */
-    private $configuration;
+    private $httpClient;
+
+    /**
+     * @var bool
+     */
+    private $followMetaRedirects = self::DEFAULT_FOLLOW_META_REDIRECTS;
+
+    /**
+     * @var int
+     */
+    private $timeoutMs = self::DEFAULT_TIMEOUT_MS;
 
     /**
      * @var ResponseInterface
@@ -29,42 +44,52 @@ class Resolver
     private $httpHistorySubscriber;
 
     /**
-     * @param Configuration|null $configuration
+     * @param HttpClient $httpClient
+     * @param bool $followMetaRedirects
+     * @param int $timeoutMs
      */
-    public function __construct($configuration = null)
-    {
-        if (empty($configuration)) {
-            $configuration = new Configuration();
-        }
-
-        $this->configuration = $configuration;
+    public function __construct(
+        HttpClient $httpClient,
+        $followMetaRedirects = self::DEFAULT_FOLLOW_META_REDIRECTS,
+        $timeoutMs = self::DEFAULT_TIMEOUT_MS
+    ) {
+        $this->httpClient = $httpClient;
+        $this->setFollowMetaRedirects($followMetaRedirects);
+        $this->setTimeoutMs($timeoutMs);
     }
 
     /**
-     * @return Configuration
+     * @param bool $followMetaRedirects
      */
-    public function getConfiguration()
+    public function setFollowMetaRedirects($followMetaRedirects)
     {
-        return $this->configuration;
+        $this->followMetaRedirects = $followMetaRedirects;
+    }
+
+    /**
+     * @param int $timeoutMs
+     */
+    public function setTimeoutMs($timeoutMs)
+    {
+        $this->timeoutMs = $timeoutMs;
     }
 
     /**
      * @param string $url
      *
      * @return string
+     *
+     * @throws QueryPathException
      */
     public function resolve($url)
     {
         $requestOptions = [];
 
-        $configuration = $this->getConfiguration();
-        $timeoutMs = $configuration->getTimeoutMs();
-
-        if (!empty($timeoutMs)) {
-            $requestOptions['timeout'] = $timeoutMs / 1000;
+        if (!empty($this->timeoutMs)) {
+            $requestOptions['timeout'] = $this->timeoutMs / 1000;
         }
 
-        $httpClient = $configuration->getHttpClient();
+        $httpClient = $this->httpClient;
         $request = $httpClient->createRequest('GET', $url, $requestOptions);
 
         return $this->resolveRequest($request);
@@ -74,10 +99,12 @@ class Resolver
      * @param RequestInterface $request
      *
      * @return string
+     *
+     * @throws QueryPathException
      */
     private function resolveRequest(RequestInterface $request)
     {
-        $httpClient = $this->configuration->getHttpClient();
+        $httpClient = $this->httpClient;
 
         try {
             $this->lastResponse = $httpClient->send($request);
@@ -93,7 +120,7 @@ class Resolver
             $this->lastResponse = $badResponseException->getResponse();
         }
 
-        if ($this->configuration->getFollowMetaRedirects()) {
+        if ($this->followMetaRedirects) {
             $metaRedirectUrl = $this->getMetaRedirectUrlFromLastResponse();
 
             if (!is_null($metaRedirectUrl) && !$this->isLastResponseUrl($metaRedirectUrl)) {
@@ -110,7 +137,7 @@ class Resolver
     private function getRequestHistory()
     {
         if (empty($this->httpHistorySubscriber)) {
-            $httpClient = $this->configuration->getHttpClient();
+            $httpClient = $this->httpClient;
             $completeListenersCollection = $httpClient->getEmitter()->listeners('complete');
 
             if (!empty($completeListenersCollection)) {
@@ -142,19 +169,9 @@ class Resolver
     }
 
     /**
-     * @param RequestInterface $request
-     *
-     * @return RequestInterface
-     */
-    private function deEncodeRequestUrl(RequestInterface $request)
-    {
-        $request->getQuery()->setEncodingType(false);
-
-        return $request;
-    }
-
-    /**
      * @return string|null
+     *
+     * @throws QueryPathException
      */
     private function getMetaRedirectUrlFromLastResponse()
     {
@@ -167,6 +184,8 @@ class Resolver
         $selector = 'meta[http-equiv=refresh]';
 
         $webPage->find($selector)->each(function ($index, \DOMElement $domElement) use (&$redirectUrl) {
+            unset($index);
+
             if ($domElement->hasAttribute('content')) {
                 $contentAttribute = $domElement->getAttribute('content');
                 $urlMarkerPosition = stripos($contentAttribute, 'url=');
