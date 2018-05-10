@@ -2,13 +2,14 @@
 
 namespace webignition\Tests\Url\Resolver;
 
-use GuzzleHttp\Exception\ConnectException;
+use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Handler\MockHandler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Response;
+use QueryPath\Exception as QueryPathException;
 use webignition\Tests\Url\Resolver\Factory\HttpFixtureFactory;
-use webignition\Url\Resolver\Configuration;
 use GuzzleHttp\Client as HttpClient;
 use webignition\Url\Resolver\Resolver;
-use GuzzleHttp\Subscriber\Mock as HttpMockSubscriber;
-use GuzzleHttp\Subscriber\History as HttpHistorySubscriber;
 
 class ResolverTest extends \PHPUnit_Framework_TestCase
 {
@@ -18,45 +19,30 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
     private $httpClient;
 
     /**
+     * @var MockHandler
+     */
+    private $mockHandler;
+
+    /**
+     * @var Resolver
+     */
+    private $resolver;
+
+    /**
      * @inheritdoc}
      */
     protected function setUp()
     {
         parent::setUp();
 
-        $this->httpClient = new HttpClient();
-    }
+        $this->mockHandler = new MockHandler();
+        $handlerStack = HandlerStack::create($this->mockHandler);
 
-    public function testSetConfiguration()
-    {
-        $configuration = new Configuration();
-        $resolver = new Resolver($configuration);
-
-        $this->assertEquals(spl_object_hash($configuration), spl_object_hash($resolver->getConfiguration()));
-    }
-
-    public function testGetConfiguration()
-    {
-        $resolver = new Resolver();
-        $this->assertInstanceOf(Configuration::class, $resolver->getConfiguration());
-    }
-
-    public function testResolveTimeout()
-    {
-        $configuration = new Configuration([
-            Configuration::CONFIG_KEY_TIMEOUT_MS => 1,
+        $this->httpClient = new HttpClient([
+            'handler' => $handlerStack,
         ]);
 
-        $resolver = new Resolver($configuration);
-
-        $this->setHttpFixtures([
-            HttpFixtureFactory::createSuccessResponse(),
-        ]);
-
-        $this->expectException(ConnectException::class);
-        $this->expectExceptionMessage('cURL error 28: Resolving timed out after');
-
-        $resolver->resolve('http://example.com/');
+        $this->resolver = new Resolver($this->httpClient);
     }
 
     /**
@@ -65,18 +51,14 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
      * @param array $httpFixtures
      * @param string $url
      * @param string $expectedResolvedUrl
+     *
+     * @throws QueryPathException
+     * @throws GuzzleException
      */
     public function testResolveHttpRedirect($httpFixtures, $url, $expectedResolvedUrl)
     {
         $this->setHttpFixtures($httpFixtures);
-
-        $resolver = new Resolver(new Configuration([
-            Configuration::CONFIG_KEY_HTTP_CLIENT => $this->httpClient,
-        ]));
-
-        $resolvedUrl = $resolver->resolve($url);
-
-        $this->assertEquals($expectedResolvedUrl, $resolvedUrl);
+        $this->assertEquals($expectedResolvedUrl, $this->resolver->resolve($url));
     }
 
     /**
@@ -87,120 +69,63 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
         return [
             'single 301' => [
                 'httpFixtures' => [
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/foo'),
-                    HttpFixtureFactory::createSuccessResponse(),
+                    new Response(301, ['location' => 'http://example.com/foo']),
+                    new Response(),
                 ],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/foo',
             ],
             'single 302' => [
                 'httpFixtures' => [
-                    HttpFixtureFactory::createRedirect(302, 'http://example.com/foo'),
-                    HttpFixtureFactory::createSuccessResponse(),
+                    new Response(302, ['location' => 'http://example.com/foo']),
+                    new Response(),
                 ],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/foo',
             ],
             'single 303' => [
                 'httpFixtures' => [
-                    HttpFixtureFactory::createRedirect(303, 'http://example.com/foo'),
-                    HttpFixtureFactory::createSuccessResponse(),
+                    new Response(303, ['location' => 'http://example.com/foo']),
+                    new Response(),
                 ],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/foo',
             ],
             'single 307' => [
                 'httpFixtures' => [
-                    HttpFixtureFactory::createRedirect(307, 'http://example.com/foo'),
-                    HttpFixtureFactory::createSuccessResponse(),
+                    new Response(307, ['location' => 'http://example.com/foo']),
+                    new Response(),
                 ],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/foo',
             ],
             'single 308' => [
                 'httpFixtures' => [
-                    HttpFixtureFactory::createRedirect(308, 'http://example.com/foo'),
-                    HttpFixtureFactory::createSuccessResponse(),
+                    new Response(308, ['location' => 'http://example.com/foo']),
+                    new Response(),
                 ],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/foo',
             ],
             'multiple 301' => [
                 'httpFixtures' => [
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/foo'),
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/bar'),
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/foobar'),
-                    HttpFixtureFactory::createSuccessResponse(),
+                    new Response(301, ['location' => 'http://example.com/foo']),
+                    new Response(301, ['location' => 'http://example.com/bar']),
+                    new Response(301, ['location' => 'http://example.com/foobar']),
+                    new Response(),
                 ],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/foobar',
             ],
-        ];
-    }
-
-    /**
-     * @dataProvider resolveTooManyRedirectsDataProvider
-     *
-     * @param array $httpFixtures
-     * @param array $configurationValues
-     * @param bool $enableHistory
-     * @param string $url
-     * @param string $expectedResolvedUrl
-     */
-    public function testResolveTooManyRedirects(
-        $httpFixtures,
-        $configurationValues,
-        $enableHistory,
-        $url,
-        $expectedResolvedUrl
-    ) {
-        if ($enableHistory) {
-            $this->httpClient->getEmitter()->attach(new HttpHistorySubscriber());
-        }
-
-        $this->setHttpFixtures($httpFixtures);
-
-        $configurationValues[Configuration::CONFIG_KEY_HTTP_CLIENT] = $this->httpClient;
-        $configuration = new Configuration($configurationValues);
-
-        $resolver = new Resolver($configuration);
-
-        $resolvedUrl = $resolver->resolve($url);
-
-        $this->assertEquals($expectedResolvedUrl, $resolvedUrl);
-    }
-
-    /**
-     * @return array
-     */
-    public function resolveTooManyRedirectsDataProvider()
-    {
-        return [
-            'too many redirects; no history' => [
+            'too many redirects' => [
                 'httpFixtures' => [
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/foo'),
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/bar'),
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/foobar'),
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/foo'),
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/bar'),
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/foobar'),
+                    new Response(301, ['location' => 'http://example.com/foo']),
+                    new Response(301, ['location' => 'http://example.com/bar']),
+                    new Response(301, ['location' => 'http://example.com/foobar']),
+                    new Response(301, ['location' => 'http://example.com/foo']),
+                    new Response(301, ['location' => 'http://example.com/bar']),
+                    new Response(301, ['location' => 'http://example.com/foobar']),
                 ],
-                'configurationValues' => [],
-                'enableHistory' => false,
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/bar',
-            ],
-            'too many redirects; has history' => [
-                'httpFixtures' => [
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/foo'),
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/bar'),
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/foobar'),
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/foo'),
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/bar'),
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/foobar'),
-                ],
-                'configurationValues' => [],
-                'enableHistory' => true,
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/bar',
             ],
@@ -211,22 +136,16 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
      * @dataProvider resolveDataProvider
      *
      * @param array $httpFixtures
-     * @param array $configurationValues
      * @param string $url
      * @param string $expectedResolvedUrl
+     *
+     * @throws QueryPathException
+     * @throws GuzzleException
      */
-    public function testResolve($httpFixtures, $configurationValues, $url, $expectedResolvedUrl)
+    public function testResolve($httpFixtures, $url, $expectedResolvedUrl)
     {
         $this->setHttpFixtures($httpFixtures);
-
-        $configurationValues[Configuration::CONFIG_KEY_HTTP_CLIENT] = $this->httpClient;
-        $configuration = new Configuration($configurationValues);
-
-        $resolver = new Resolver($configuration);
-
-        $resolvedUrl = $resolver->resolve($url);
-
-        $this->assertEquals($expectedResolvedUrl, $resolvedUrl);
+        $this->assertEquals($expectedResolvedUrl, $this->resolver->resolve($url));
     }
 
     /**
@@ -234,106 +153,95 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
      */
     public function resolveDataProvider()
     {
+        $successResponse = new Response();
+        $notFoundResponse = new Response(404);
+
         return [
             'no redirects' => [
                 'httpFixtures' => [
-                    HttpFixtureFactory::createSuccessResponse(),
+                    $successResponse,
                 ],
-                'configurationValues' => [],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/',
             ],
             '404' => [
                 'httpFixtures' => [
-                    HttpFixtureFactory::createNotFoundResponse(),
-                    HttpFixtureFactory::createNotFoundResponse(),
+                    $notFoundResponse,
+                    $notFoundResponse,
                 ],
-                'configurationValues' => [],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/',
             ],
             '404 initially, then 200' => [
                 'httpFixtures' => [
-                    HttpFixtureFactory::createNotFoundResponse(),
-                    HttpFixtureFactory::createSuccessResponse(),
+                    $notFoundResponse,
+                    $successResponse
                 ],
-                'configurationValues' => [],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/',
             ],
-            '404 initially, then 301, then 200; no retry with url encoding disabled' => [
+            '404 initially, then 301, then 200' => [
                 'httpFixtures' => [
-                    HttpFixtureFactory::createNotFoundResponse(),
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/foo'),
-                    HttpFixtureFactory::createSuccessResponse(),
+                    $notFoundResponse,
+                    new Response(301, ['location' => 'http://example.com/foo']),
+                    $successResponse,
                 ],
-                'configurationValues' => [],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/',
-            ],
-            '404 initially, then 301, then 200; retry with url encoding disabled' => [
-                'httpFixtures' => [
-                    HttpFixtureFactory::createNotFoundResponse(),
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/foo'),
-                    HttpFixtureFactory::createSuccessResponse(),
-                ],
-                'configurationValues' => [
-                    Configuration::CONFIG_KEY_RETRY_WITH_URL_ENCODING_DISABLED => true,
-                ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/foo',
             ],
             'meta redirect success' => [
                 'httpFixtures' => [
                     HttpFixtureFactory::createMetaRedirectResponse('text/html', 'http://example.com/foo'),
-                    HttpFixtureFactory::createSuccessResponse(),
+                    $successResponse,
                 ],
-                'configurationValues' => [],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/foo',
             ],
             'meta redirect invalid content type' => [
                 'httpFixtures' => [
                     HttpFixtureFactory::createMetaRedirectResponse('text/plain', 'http://example.com/foo'),
-                    HttpFixtureFactory::createSuccessResponse(),
+                    $successResponse,
                 ],
-                'configurationValues' => [],
+                'url' => 'http://example.com/',
+                'expectedResolvedUrl' => 'http://example.com/',
+            ],
+            'meta redirect unparseable content type' => [
+                'httpFixtures' => [
+                    HttpFixtureFactory::createMetaRedirectResponse('text/pl a i n', 'http://example.com/foo'),
+                    $successResponse,
+                ],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/',
             ],
             'meta redirect no url' => [
                 'httpFixtures' => [
                     HttpFixtureFactory::createMetaRedirectResponse('text/html'),
-                    HttpFixtureFactory::createSuccessResponse(),
+                    $successResponse,
                 ],
-                'configurationValues' => [],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/',
             ],
             'meta redirect same url' => [
                 'httpFixtures' => [
                     HttpFixtureFactory::createMetaRedirectResponse('text/html', 'http://example.com/bar/'),
-                    HttpFixtureFactory::createSuccessResponse(),
+                    $successResponse,
                 ],
-                'configurationValues' => [],
                  'url' => 'http://example.com/bar/',
                 'expectedResolvedUrl' => 'http://example.com/bar/',
             ],
             'meta redirect relative url' => [
                 'httpFixtures' => [
                     HttpFixtureFactory::createMetaRedirectResponse('text/html', '/foobar/'),
-                    HttpFixtureFactory::createSuccessResponse(),
+                    $successResponse,
                 ],
-                'configurationValues' => [],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/foobar/',
             ],
             'meta redirect protocol-relative url' => [
                 'httpFixtures' => [
                     HttpFixtureFactory::createMetaRedirectResponse('text/html', '//example.com/bar/'),
-                    HttpFixtureFactory::createSuccessResponse(),
+                    $successResponse,
                 ],
-                'configurationValues' => [],
                 'url' => 'https://example.com/',
                 'expectedResolvedUrl' => 'https://example.com/bar/',
             ],
@@ -345,8 +253,8 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
      */
     private function setHttpFixtures($fixtures)
     {
-        $httpMockSubscriber = new HttpMockSubscriber($fixtures);
-
-        $this->httpClient->getEmitter()->attach($httpMockSubscriber);
+        foreach ($fixtures as $fixture) {
+            $this->mockHandler->append($fixture);
+        }
     }
 }

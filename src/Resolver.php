@@ -1,178 +1,116 @@
 <?php
+
 namespace webignition\Url\Resolver;
 
+use GuzzleHttp\Client as HttpClient;
 use GuzzleHttp\Exception\BadResponseException;
+use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\TooManyRedirectsException;
-use GuzzleHttp\Message\RequestInterface;
-use GuzzleHttp\Message\ResponseInterface;
-use GuzzleHttp\Subscriber\History as HttpHistorySubscriber;
+use GuzzleHttp\Psr7\Request;
+use GuzzleHttp\TransferStats;
+use Psr\Http\Message\ResponseInterface;
+use Psr\Http\Message\UriInterface;
+use QueryPath\Exception as QueryPathException;
 use webignition\AbsoluteUrlDeriver\AbsoluteUrlDeriver;
 use webignition\NormalisedUrl\NormalisedUrl;
-use webignition\WebResource\Exception as WebResourceException;
 use webignition\WebResource\WebPage\WebPage;
 
 class Resolver
 {
-    /**
-     * @var Configuration
-     */
-    private $configuration;
+    const DEFAULT_FOLLOW_META_REDIRECTS = true;
 
     /**
-     * @var ResponseInterface
+     * @var HttpClient
      */
-    private $lastResponse = null;
-
-    /**
-     * @var HttpHistorySubscriber
-     */
-    private $httpHistorySubscriber;
+    private $httpClient;
 
     /**
      * @var bool
      */
-    private $hasTriedWithUrlEncodingDisabled = false;
+    private $followMetaRedirects = self::DEFAULT_FOLLOW_META_REDIRECTS;
 
     /**
-     * @param Configuration|null $configuration
+     * @param HttpClient $httpClient
+     * @param bool $followMetaRedirects
      */
-    public function __construct($configuration = null)
+    public function __construct(HttpClient $httpClient, $followMetaRedirects = self::DEFAULT_FOLLOW_META_REDIRECTS)
     {
-        if (empty($configuration)) {
-            $configuration = new Configuration();
-        }
-
-        $this->configuration = $configuration;
+        $this->httpClient = $httpClient;
+        $this->setFollowMetaRedirects($followMetaRedirects);
     }
 
     /**
-     * @return Configuration
+     * @param bool $followMetaRedirects
      */
-    public function getConfiguration()
+    public function setFollowMetaRedirects($followMetaRedirects)
     {
-        return $this->configuration;
+        $this->followMetaRedirects = $followMetaRedirects;
     }
 
     /**
      * @param string $url
      *
      * @return string
+     *
+     * @throws QueryPathException
+     * @throws GuzzleException
      */
     public function resolve($url)
     {
-        $requestOptions = [];
-
-        $configuration = $this->getConfiguration();
-        $timeoutMs = $configuration->getTimeoutMs();
-
-        if (!empty($timeoutMs)) {
-            $requestOptions['timeout'] = $timeoutMs / 1000;
-        }
-
-        $httpClient = $configuration->getHttpClient();
-        $request = $httpClient->createRequest('GET', $url, $requestOptions);
-
-        return $this->resolveRequest($request);
-    }
-
-    /**
-     * @param RequestInterface $request
-     *
-     * @return string
-     */
-    private function resolveRequest(RequestInterface $request)
-    {
-        $httpClient = $this->configuration->getHttpClient();
+        $request = new Request('GET', $url);
+        $lastRequestUri = $request->getUri();
 
         try {
-            $this->lastResponse = $httpClient->send($request);
+            $response = $this->httpClient->send($request, [
+                'on_stats' => function (TransferStats $stats) use (&$requestUri) {
+                    if ($stats->hasResponse()) {
+                        $requestUri = $stats->getEffectiveUri();
+                    }
+                },
+            ]);
         } catch (TooManyRedirectsException $tooManyRedirectsException) {
-            $httpHistory = $this->getRequestHistory();
-
-            if (!empty($httpHistory)) {
-                $this->lastResponse = $httpHistory->getLastResponse();
-            } else {
-                return $request->getUrl();
-            }
+            return $requestUri;
         } catch (BadResponseException $badResponseException) {
-            if ($this->configuration->getRetryWithUrlEncodingDisabled() && !$this->hasTriedWithUrlEncodingDisabled) {
-                $this->hasTriedWithUrlEncodingDisabled = true;
-
-                return $this->resolveRequest($this->deEncodeRequestUrl($request));
-            } else {
-                $this->lastResponse = $badResponseException->getResponse();
-            }
+            $response = $badResponseException->getResponse();
         }
 
-        $this->hasTriedWithUrlEncodingDisabled = false;
+        if ($this->followMetaRedirects) {
+            $metaRedirectUrl = $this->getMetaRedirectUrlFromResponse($response, $lastRequestUri);
 
-        if ($this->configuration->getFollowMetaRedirects()) {
-            $metaRedirectUrl = $this->getMetaRedirectUrlFromLastResponse();
-
-            if (!is_null($metaRedirectUrl) && !$this->isLastResponseUrl($metaRedirectUrl)) {
+            if (!empty($metaRedirectUrl) && !$this->isLastResponseUrl($metaRedirectUrl, $lastRequestUri)) {
                 return $this->resolve($metaRedirectUrl);
             }
         }
 
-        return $this->lastResponse->getEffectiveUrl();
+        return $requestUri;
     }
-
-    /**
-     * @return HttpHistorySubscriber
-     */
-    private function getRequestHistory()
-    {
-        if (empty($this->httpHistorySubscriber)) {
-            $httpClient = $this->configuration->getHttpClient();
-            $completeListenersCollection = $httpClient->getEmitter()->listeners('complete');
-
-            if (!empty($completeListenersCollection)) {
-                $completeListeners = $completeListenersCollection[0];
-
-                foreach ($completeListeners as $listener) {
-                    if ($listener instanceof HttpHistorySubscriber) {
-                        $this->httpHistorySubscriber = $listener;
-                    }
-                }
-            }
-        }
-
-        return $this->httpHistorySubscriber;
-    }
-
 
     /**
      * @param string $url
+     * @param UriInterface $lastRequestUri
      *
      * @return bool
      */
-    private function isLastResponseUrl($url)
+    private function isLastResponseUrl($url, UriInterface $lastRequestUri)
     {
-        $lastResponseUrl = new NormalisedUrl($this->lastResponse->getEffectiveUrl());
+        $lastResponseUrl = new NormalisedUrl($lastRequestUri);
         $comparator = new NormalisedUrl($url);
 
         return (string)$lastResponseUrl == (string)$comparator;
     }
 
     /**
-     * @param RequestInterface $request
+     * @param ResponseInterface $response
+     * @param UriInterface $lastRequestUri
      *
-     * @return RequestInterface
-     */
-    private function deEncodeRequestUrl(RequestInterface $request)
-    {
-        $request->getQuery()->setEncodingType(false);
-
-        return $request;
-    }
-
-    /**
      * @return string|null
+     * @throws QueryPathException
      */
-    private function getMetaRedirectUrlFromLastResponse()
+    private function getMetaRedirectUrlFromResponse(ResponseInterface $response, UriInterface $lastRequestUri)
     {
-        $webPage = $this->getWebPageFromLastResponse();
-        if (empty($webPage)) {
+        try {
+            $webPage = new WebPage($response);
+        } catch (\Exception $exception) {
             return null;
         }
 
@@ -180,6 +118,8 @@ class Resolver
         $selector = 'meta[http-equiv=refresh]';
 
         $webPage->find($selector)->each(function ($index, \DOMElement $domElement) use (&$redirectUrl) {
+            unset($index);
+
             if ($domElement->hasAttribute('content')) {
                 $contentAttribute = $domElement->getAttribute('content');
                 $urlMarkerPosition = stripos($contentAttribute, 'url=');
@@ -190,30 +130,13 @@ class Resolver
             }
         });
 
+
         if (empty($redirectUrl)) {
             return null;
         }
 
-        $absoluteUrlDeriver = new AbsoluteUrlDeriver($redirectUrl, $this->lastResponse->getEffectiveUrl());
+        $absoluteUrlDeriver = new AbsoluteUrlDeriver($redirectUrl, $lastRequestUri);
 
         return (string)$absoluteUrlDeriver->getAbsoluteUrl();
-    }
-
-    /**
-     * @return null|WebPage
-     */
-    private function getWebPageFromLastResponse()
-    {
-        if (!$this->lastResponse->hasHeader('Content-Type')) {
-            return null;
-        }
-
-        try {
-            $webPage = new WebPage();
-            $webPage->setHttpResponse($this->lastResponse);
-            return $webPage;
-        } catch (WebResourceException $webResourceException) {
-            return null;
-        }
     }
 }
