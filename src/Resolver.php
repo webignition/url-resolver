@@ -29,11 +29,6 @@ class Resolver
     private $httpHistorySubscriber;
 
     /**
-     * @var bool
-     */
-    private $hasTriedWithUrlEncodingDisabled = false;
-
-    /**
      * @param Configuration|null $configuration
      */
     public function __construct($configuration = null)
@@ -95,16 +90,8 @@ class Resolver
                 return $request->getUrl();
             }
         } catch (BadResponseException $badResponseException) {
-            if ($this->configuration->getRetryWithUrlEncodingDisabled() && !$this->hasTriedWithUrlEncodingDisabled) {
-                $this->hasTriedWithUrlEncodingDisabled = true;
-
-                return $this->resolveRequest($this->deEncodeRequestUrl($request));
-            } else {
-                $this->lastResponse = $badResponseException->getResponse();
-            }
+            $this->lastResponse = $badResponseException->getResponse();
         }
-
-        $this->hasTriedWithUrlEncodingDisabled = false;
 
         if ($this->configuration->getFollowMetaRedirects()) {
             $metaRedirectUrl = $this->getMetaRedirectUrlFromLastResponse();

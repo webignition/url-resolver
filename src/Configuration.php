@@ -23,11 +23,6 @@ class Configuration
     private $followMetaRedirects = true;
 
     /**
-     * @var bool
-     */
-    private $retryWithUrlEncodingDisabled = false;
-
-    /**
      * @var int
      */
     private $timeoutMs;
@@ -72,14 +67,6 @@ class Configuration
     public function getHttpClient()
     {
         return $this->httpClient;
-    }
-
-    /**
-     * @return bool
-     */
-    public function getRetryWithUrlEncodingDisabled()
-    {
-        return $this->retryWithUrlEncodingDisabled;
     }
 
     /**

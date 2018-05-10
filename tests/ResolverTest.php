@@ -271,18 +271,6 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/',
             ],
-            '404 initially, then 301, then 200; retry with url encoding disabled' => [
-                'httpFixtures' => [
-                    HttpFixtureFactory::createNotFoundResponse(),
-                    HttpFixtureFactory::createRedirect(301, 'http://example.com/foo'),
-                    HttpFixtureFactory::createSuccessResponse(),
-                ],
-                'configurationValues' => [
-                    Configuration::CONFIG_KEY_RETRY_WITH_URL_ENCODING_DISABLED => true,
-                ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/foo',
-            ],
             'meta redirect success' => [
                 'httpFixtures' => [
                     HttpFixtureFactory::createMetaRedirectResponse('text/html', 'http://example.com/foo'),

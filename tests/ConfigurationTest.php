@@ -27,13 +27,11 @@ class ConfigurationTest extends \PHPUnit_Framework_TestCase
      *
      * @param array $configurationValues
      * @param bool $expectedIsClassHttpClient
-     * @param bool $expectedRetryWithUrlEncodingDisabled
      * @param bool $expectedFollowMetaRedirects
      */
     public function testCreate(
         $configurationValues,
         $expectedIsClassHttpClient,
-        $expectedRetryWithUrlEncodingDisabled,
         $expectedFollowMetaRedirects
     ) {
         if (isset($configurationValues[Configuration::CONFIG_KEY_HTTP_CLIENT])) {
@@ -54,7 +52,6 @@ class ConfigurationTest extends \PHPUnit_Framework_TestCase
             );
         }
 
-        $this->assertEquals($expectedRetryWithUrlEncodingDisabled, $configuration->getRetryWithUrlEncodingDisabled());
         $this->assertEquals($expectedFollowMetaRedirects, $configuration->getFollowMetaRedirects());
     }
 
@@ -67,7 +64,6 @@ class ConfigurationTest extends \PHPUnit_Framework_TestCase
             'defaults' => [
                 'configurationValues' => [],
                 'expectedIsClassHttpClient' => false,
-                'expectedRetryWithUrlEncodingDisabled' => false,
                 'expectedFollowMetaRedirects' => true,
             ],
             'non-defaults' => [
@@ -77,7 +73,6 @@ class ConfigurationTest extends \PHPUnit_Framework_TestCase
                     Configuration::CONFIG_KEY_FOLLOW_META_REDIRECTS => false,
                 ],
                 'expectedIsClassHttpClient' => true,
-                'expectedRetryWithUrlEncodingDisabled' => true,
                 'expectedFollowMetaRedirects' => false,
             ],
         ];
