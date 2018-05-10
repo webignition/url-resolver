@@ -205,6 +205,14 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/',
             ],
+            'meta redirect unparseable content type' => [
+                'httpFixtures' => [
+                    HttpFixtureFactory::createMetaRedirectResponse('text/pl a i n', 'http://example.com/foo'),
+                    $successResponse,
+                ],
+                'url' => 'http://example.com/',
+                'expectedResolvedUrl' => 'http://example.com/',
+            ],
             'meta redirect no url' => [
                 'httpFixtures' => [
                     HttpFixtureFactory::createMetaRedirectResponse('text/html'),

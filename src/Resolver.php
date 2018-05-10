@@ -12,9 +12,7 @@ use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
 use QueryPath\Exception as QueryPathException;
 use webignition\AbsoluteUrlDeriver\AbsoluteUrlDeriver;
-use webignition\InternetMediaType\Parser\ParseException as InternetMediaTypeParseException;
 use webignition\NormalisedUrl\NormalisedUrl;
-use webignition\WebResource\Exception\InvalidContentTypeException;
 use webignition\WebResource\WebPage\WebPage;
 
 class Resolver
@@ -106,39 +104,32 @@ class Resolver
      * @param UriInterface $lastRequestUri
      *
      * @return string|null
+     * @throws QueryPathException
      */
     private function getMetaRedirectUrlFromResponse(ResponseInterface $response, UriInterface $lastRequestUri)
     {
         try {
             $webPage = new WebPage($response);
-            if (empty($webPage)) {
-                return null;
-            }
-        } catch (InvalidContentTypeException $invalidContentTypeException) {
-            return null;
-        } catch (InternetMediaTypeParseException $internetMediaTypeParseException) {
+        } catch (\Exception $exception) {
             return null;
         }
 
         $redirectUrl = null;
         $selector = 'meta[http-equiv=refresh]';
 
-        try {
-            $webPage->find($selector)->each(function ($index, \DOMElement $domElement) use (&$redirectUrl) {
-                unset($index);
+        $webPage->find($selector)->each(function ($index, \DOMElement $domElement) use (&$redirectUrl) {
+            unset($index);
 
-                if ($domElement->hasAttribute('content')) {
-                    $contentAttribute = $domElement->getAttribute('content');
-                    $urlMarkerPosition = stripos($contentAttribute, 'url=');
+            if ($domElement->hasAttribute('content')) {
+                $contentAttribute = $domElement->getAttribute('content');
+                $urlMarkerPosition = stripos($contentAttribute, 'url=');
 
-                    if ($urlMarkerPosition !== false) {
-                        $redirectUrl = substr($contentAttribute, $urlMarkerPosition + strlen('url='));
-                    }
+                if ($urlMarkerPosition !== false) {
+                    $redirectUrl = substr($contentAttribute, $urlMarkerPosition + strlen('url='));
                 }
-            });
-        } catch (QueryPathException $queryPathException) {
-            return $redirectUrl = null;
-        }
+            }
+        });
+
 
         if (empty($redirectUrl)) {
             return null;
