@@ -8,7 +8,6 @@ use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Exception\TooManyRedirectsException;
 use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\TransferStats;
-use Psr\Http\Message\RequestInterface;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
 use QueryPath\Exception as QueryPathException;
@@ -60,19 +59,7 @@ class Resolver
      */
     public function resolve($url)
     {
-        return $this->resolveRequest(new Request('GET', $url));
-    }
-
-    /**
-     * @param RequestInterface $request
-     *
-     * @return string
-     *
-     * @throws QueryPathException
-     * @throws GuzzleException
-     */
-    private function resolveRequest(RequestInterface $request)
-    {
+        $request = new Request('GET', $url);
         $lastRequestUri = $request->getUri();
 
         try {
