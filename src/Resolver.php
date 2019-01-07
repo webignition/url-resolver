@@ -10,9 +10,9 @@ use GuzzleHttp\Psr7\Request;
 use GuzzleHttp\TransferStats;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
-use QueryPath\Exception as QueryPathException;
 use webignition\AbsoluteUrlDeriver\AbsoluteUrlDeriver;
 use webignition\NormalisedUrl\NormalisedUrl;
+use webignition\WebPageInspector\WebPageInspector;
 use webignition\WebResource\WebPage\WebPage;
 
 class Resolver
@@ -45,7 +45,6 @@ class Resolver
      *
      * @return string
      *
-     * @throws QueryPathException
      * @throws GuzzleException
      */
     public function resolve(string $url): string
@@ -86,17 +85,18 @@ class Resolver
         return (string)$lastResponseUrl == (string)$comparator;
     }
 
+    /** @noinspection PhpDocMissingThrowsInspection */
     /**
      * @param ResponseInterface $response
      * @param UriInterface $lastRequestUri
      *
      * @return string|null
-     * @throws QueryPathException
      */
     private function getMetaRedirectUrlFromResponse(ResponseInterface $response, UriInterface $lastRequestUri)
     {
+        /* @var WebPage $webPage */
         try {
-            $webPage = new WebPage($response);
+            $webPage = Webpage::createFromResponse($lastRequestUri, $response);
         } catch (\Exception $exception) {
             return null;
         }
@@ -104,19 +104,23 @@ class Resolver
         $redirectUrl = null;
         $selector = 'meta[http-equiv=refresh]';
 
-        $webPage->find($selector)->each(function ($index, \DOMElement $domElement) use (&$redirectUrl) {
-            unset($index);
+        /** @noinspection PhpUnhandledExceptionInspection */
+        $inspector = new WebPageInspector($webPage);
 
-            if ($domElement->hasAttribute('content')) {
-                $contentAttribute = $domElement->getAttribute('content');
+        /* @var \DOMElement[] $metaRefreshElements */
+        $metaRefreshElements = $inspector->querySelectorAll($selector);
+
+
+        foreach ($metaRefreshElements as $metaRefreshElement) {
+            if ($metaRefreshElement->hasAttribute('content')) {
+                $contentAttribute = $metaRefreshElement->getAttribute('content');
                 $urlMarkerPosition = stripos($contentAttribute, 'url=');
 
                 if ($urlMarkerPosition !== false) {
                     $redirectUrl = substr($contentAttribute, $urlMarkerPosition + strlen('url='));
                 }
             }
-        });
-
+        }
 
         if (empty($redirectUrl)) {
             return null;
