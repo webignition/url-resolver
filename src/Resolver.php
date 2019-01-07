@@ -29,20 +29,13 @@ class Resolver
      */
     private $followMetaRedirects = self::DEFAULT_FOLLOW_META_REDIRECTS;
 
-    /**
-     * @param HttpClient $httpClient
-     * @param bool $followMetaRedirects
-     */
-    public function __construct(HttpClient $httpClient, $followMetaRedirects = self::DEFAULT_FOLLOW_META_REDIRECTS)
+    public function __construct(HttpClient $httpClient, bool $followMetaRedirects = self::DEFAULT_FOLLOW_META_REDIRECTS)
     {
         $this->httpClient = $httpClient;
         $this->setFollowMetaRedirects($followMetaRedirects);
     }
 
-    /**
-     * @param bool $followMetaRedirects
-     */
-    public function setFollowMetaRedirects($followMetaRedirects)
+    public function setFollowMetaRedirects(bool $followMetaRedirects)
     {
         $this->followMetaRedirects = $followMetaRedirects;
     }
@@ -55,7 +48,7 @@ class Resolver
      * @throws QueryPathException
      * @throws GuzzleException
      */
-    public function resolve($url)
+    public function resolve(string $url): string
     {
         $request = new Request('GET', $url);
         $lastRequestUri = $request->getUri();
@@ -85,13 +78,7 @@ class Resolver
         return $requestUri;
     }
 
-    /**
-     * @param string $url
-     * @param UriInterface $lastRequestUri
-     *
-     * @return bool
-     */
-    private function isLastResponseUrl($url, UriInterface $lastRequestUri)
+    private function isLastResponseUrl(string $url, UriInterface $lastRequestUri): bool
     {
         $lastResponseUrl = new NormalisedUrl($lastRequestUri);
         $comparator = new NormalisedUrl($url);
@@ -137,6 +124,6 @@ class Resolver
 
         $absoluteUrlDeriver = new AbsoluteUrlDeriver($redirectUrl, $lastRequestUri);
 
-        return (string)$absoluteUrlDeriver->getAbsoluteUrl();
+        return (string) $absoluteUrlDeriver->getAbsoluteUrl();
     }
 }
