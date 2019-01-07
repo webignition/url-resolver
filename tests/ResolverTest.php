@@ -1,17 +1,17 @@
 <?php
+/** @noinspection PhpDocSignatureInspection */
+/** @noinspection PhpUnhandledExceptionInspection */
 
 namespace webignition\Tests\Url\Resolver;
 
-use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
-use QueryPath\Exception as QueryPathException;
 use webignition\Tests\Url\Resolver\Factory\HttpFixtureFactory;
 use GuzzleHttp\Client as HttpClient;
 use webignition\Url\Resolver\Resolver;
 
-class ResolverTest extends \PHPUnit_Framework_TestCase
+class ResolverTest extends \PHPUnit\Framework\TestCase
 {
     /**
      * @var HttpClient
@@ -47,24 +47,14 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @dataProvider resolveHttpRedirectDataProvider
-     *
-     * @param array $httpFixtures
-     * @param string $url
-     * @param string $expectedResolvedUrl
-     *
-     * @throws QueryPathException
-     * @throws GuzzleException
      */
-    public function testResolveHttpRedirect($httpFixtures, $url, $expectedResolvedUrl)
+    public function testResolveHttpRedirect(array $httpFixtures, string $url, string $expectedResolvedUrl)
     {
         $this->setHttpFixtures($httpFixtures);
         $this->assertEquals($expectedResolvedUrl, $this->resolver->resolve($url));
     }
 
-    /**
-     * @return array
-     */
-    public function resolveHttpRedirectDataProvider()
+    public function resolveHttpRedirectDataProvider(): array
     {
         return [
             'single 301' => [
@@ -134,24 +124,14 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
 
     /**
      * @dataProvider resolveDataProvider
-     *
-     * @param array $httpFixtures
-     * @param string $url
-     * @param string $expectedResolvedUrl
-     *
-     * @throws QueryPathException
-     * @throws GuzzleException
      */
-    public function testResolve($httpFixtures, $url, $expectedResolvedUrl)
+    public function testResolve(array $httpFixtures, string $url, string $expectedResolvedUrl)
     {
         $this->setHttpFixtures($httpFixtures);
         $this->assertEquals($expectedResolvedUrl, $this->resolver->resolve($url));
     }
 
-    /**
-     * @return array
-     */
-    public function resolveDataProvider()
+    public function resolveDataProvider(): array
     {
         $successResponse = new Response();
         $notFoundResponse = new Response(404);
@@ -248,10 +228,7 @@ class ResolverTest extends \PHPUnit_Framework_TestCase
         ];
     }
 
-    /**
-     * @param array $fixtures
-     */
-    private function setHttpFixtures($fixtures)
+    private function setHttpFixtures(array $fixtures)
     {
         foreach ($fixtures as $fixture) {
             $this->mockHandler->append($fixture);

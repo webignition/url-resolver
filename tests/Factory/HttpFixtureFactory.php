@@ -7,13 +7,7 @@ use Psr\Http\Message\ResponseInterface;
 
 class HttpFixtureFactory
 {
-    /**
-     * @param string $contentType
-     * @param string $url
-     *
-     * @return ResponseInterface
-     */
-    public static function createMetaRedirectResponse($contentType, $url = null)
+    public static function createMetaRedirectResponse(string $contentType, string $url = null): ResponseInterface
     {
         $fixture = HtmlDocumentFactory::load('meta-redirect');
         $content = '0;';
