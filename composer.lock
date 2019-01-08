@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "749211471a63bff7d5e434eb88cadc6e",
+    "content-hash": "e4787e39f05682d5b46fafd16c5f9ff9",
     "packages": [
         {
             "name": "etechnika/idna-convert",
@@ -979,16 +979,16 @@
         },
         {
             "name": "webignition/web-page-inspector",
-            "version": "0.6",
+            "version": "1.0",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webignition/web-page-inspector.git",
-                "reference": "778ac9a60d1a0fb52bdd059acdc7bf0bf662ef69"
+                "reference": "238020662cefa5631f8c972abd1b6820d0767d1f"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webignition/web-page-inspector/zipball/778ac9a60d1a0fb52bdd059acdc7bf0bf662ef69",
-                "reference": "778ac9a60d1a0fb52bdd059acdc7bf0bf662ef69",
+                "url": "https://api.github.com/repos/webignition/web-page-inspector/zipball/238020662cefa5631f8c972abd1b6820d0767d1f",
+                "reference": "238020662cefa5631f8c972abd1b6820d0767d1f",
                 "shasum": ""
             },
             "require": {
@@ -1026,28 +1026,29 @@
                 "inspector",
                 "webpage"
             ],
-            "time": "2018-10-12T17:35:30+00:00"
+            "time": "2019-01-08T10:30:29+00:00"
         },
         {
             "name": "webignition/web-page-model",
-            "version": "5.1",
+            "version": "5.6",
             "source": {
                 "type": "git",
                 "url": "https://github.com/webignition/web-page-model.git",
-                "reference": "f102746e95613e5654b94c7bf7c99ec2da9ac3dd"
+                "reference": "4816d14667ab5fa2b8a5febc86866623e9c213b4"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/webignition/web-page-model/zipball/f102746e95613e5654b94c7bf7c99ec2da9ac3dd",
-                "reference": "f102746e95613e5654b94c7bf7c99ec2da9ac3dd",
+                "url": "https://api.github.com/repos/webignition/web-page-model/zipball/4816d14667ab5fa2b8a5febc86866623e9c213b4",
+                "reference": "4816d14667ab5fa2b8a5febc86866623e9c213b4",
                 "shasum": ""
             },
             "require": {
                 "php": ">=7.2.0",
+                "webignition/absolute-url-deriver": ">=2,<3",
                 "webignition/character-set-list": "^0.2",
                 "webignition/internet-media-type": "^2",
                 "webignition/internet-media-type-interface": "^0.4",
-                "webignition/web-page-inspector": ">=0.3,<1",
+                "webignition/web-page-inspector": ">=1,<2",
                 "webignition/web-resource-interfaces": ">=3.3,<4",
                 "webignition/web-resource-model": ">=5.2,<6"
             },
@@ -1079,7 +1080,7 @@
                 "model",
                 "webpage"
             ],
-            "time": "2018-10-10T11:20:47+00:00"
+            "time": "2019-01-08T10:42:11+00:00"
         },
         {
             "name": "webignition/web-resource-interfaces",
