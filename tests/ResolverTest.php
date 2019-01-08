@@ -56,11 +56,13 @@ class ResolverTest extends \PHPUnit\Framework\TestCase
 
     public function resolveHttpRedirectDataProvider(): array
     {
+        $successResponse = new Response(200, ['content-type' => 'text/html']);
+
         return [
             'single 301' => [
                 'httpFixtures' => [
                     new Response(301, ['location' => 'http://example.com/foo']),
-                    new Response(),
+                    $successResponse,
                 ],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/foo',
@@ -68,7 +70,7 @@ class ResolverTest extends \PHPUnit\Framework\TestCase
             'single 302' => [
                 'httpFixtures' => [
                     new Response(302, ['location' => 'http://example.com/foo']),
-                    new Response(),
+                    $successResponse,
                 ],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/foo',
@@ -76,7 +78,7 @@ class ResolverTest extends \PHPUnit\Framework\TestCase
             'single 303' => [
                 'httpFixtures' => [
                     new Response(303, ['location' => 'http://example.com/foo']),
-                    new Response(),
+                    $successResponse,
                 ],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/foo',
@@ -84,7 +86,7 @@ class ResolverTest extends \PHPUnit\Framework\TestCase
             'single 307' => [
                 'httpFixtures' => [
                     new Response(307, ['location' => 'http://example.com/foo']),
-                    new Response(),
+                    $successResponse,
                 ],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/foo',
@@ -92,7 +94,7 @@ class ResolverTest extends \PHPUnit\Framework\TestCase
             'single 308' => [
                 'httpFixtures' => [
                     new Response(308, ['location' => 'http://example.com/foo']),
-                    new Response(),
+                    $successResponse,
                 ],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/foo',
@@ -102,7 +104,7 @@ class ResolverTest extends \PHPUnit\Framework\TestCase
                     new Response(301, ['location' => 'http://example.com/foo']),
                     new Response(301, ['location' => 'http://example.com/bar']),
                     new Response(301, ['location' => 'http://example.com/foobar']),
-                    new Response(),
+                    $successResponse,
                 ],
                 'url' => 'http://example.com/',
                 'expectedResolvedUrl' => 'http://example.com/foobar',
@@ -133,7 +135,7 @@ class ResolverTest extends \PHPUnit\Framework\TestCase
 
     public function resolveDataProvider(): array
     {
-        $successResponse = new Response();
+        $successResponse = new Response(200, ['content-type' => 'text/html']);
         $notFoundResponse = new Response(404);
 
         return [
@@ -220,6 +222,18 @@ class ResolverTest extends \PHPUnit\Framework\TestCase
             'meta redirect protocol-relative url' => [
                 'httpFixtures' => [
                     HttpFixtureFactory::createMetaRedirectResponse('text/html', '//example.com/bar/'),
+                    $successResponse,
+                ],
+                'url' => 'https://example.com/',
+                'expectedResolvedUrl' => 'https://example.com/bar/',
+            ],
+            'meta redirect within document containing unparseable content type' => [
+                'httpFixtures' => [
+                    HttpFixtureFactory::createMetaRedirectResponse(
+                        'text/html',
+                        '//example.com/bar/',
+                        'meta-redirect-with-unparseable-meta-content-type'
+                    ),
                     $successResponse,
                 ],
                 'url' => 'https://example.com/',
