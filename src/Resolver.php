@@ -45,6 +45,7 @@ class Resolver
     {
         $request = new Request('GET', $uri);
         $lastRequestUri = $request->getUri();
+        $requestUri = null;
 
         try {
             $response = $this->httpClient->send($request, [
