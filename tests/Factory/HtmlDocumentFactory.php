@@ -1,6 +1,6 @@
 <?php
 
-namespace webignition\Tests\Url\Resolver\Factory;
+namespace webignition\Url\Resolver\Tests\Factory;
 
 class HtmlDocumentFactory
 {
