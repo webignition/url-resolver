@@ -11,7 +11,8 @@ use GuzzleHttp\TransferStats;
 use Psr\Http\Message\ResponseInterface;
 use Psr\Http\Message\UriInterface;
 use webignition\AbsoluteUrlDeriver\AbsoluteUrlDeriver;
-use webignition\NormalisedUrl\NormalisedUrl;
+use webignition\Uri\Normalizer;
+use webignition\Uri\Uri;
 use webignition\WebPageInspector\WebPageInspector;
 use webignition\WebResource\WebPage\WebPage;
 
@@ -19,14 +20,7 @@ class Resolver
 {
     const DEFAULT_FOLLOW_META_REDIRECTS = true;
 
-    /**
-     * @var HttpClient
-     */
     private $httpClient;
-
-    /**
-     * @var bool
-     */
     private $followMetaRedirects = self::DEFAULT_FOLLOW_META_REDIRECTS;
 
     public function __construct(HttpClient $httpClient, bool $followMetaRedirects = self::DEFAULT_FOLLOW_META_REDIRECTS)
@@ -41,15 +35,15 @@ class Resolver
     }
 
     /**
-     * @param string $url
+     * @param UriInterface $uri
      *
-     * @return string
+     * @return UriInterface
      *
      * @throws GuzzleException
      */
-    public function resolve(string $url): string
+    public function resolve(UriInterface $uri): UriInterface
     {
-        $request = new Request('GET', $url);
+        $request = new Request('GET', $uri);
         $lastRequestUri = $request->getUri();
 
         try {
@@ -67,33 +61,34 @@ class Resolver
         }
 
         if ($this->followMetaRedirects) {
-            $metaRedirectUrl = $this->getMetaRedirectUrlFromResponse($response, $lastRequestUri);
+            $metaRedirectUri = $this->getMetaRedirectUriFromResponse($response, $lastRequestUri);
 
-            if (!empty($metaRedirectUrl) && !$this->isLastResponseUrl($metaRedirectUrl, $lastRequestUri)) {
-                return $this->resolve($metaRedirectUrl);
+            if (!empty($metaRedirectUri) && !$this->isLastResponseUrl($metaRedirectUri, $lastRequestUri)) {
+                return $this->resolve($metaRedirectUri);
             }
         }
 
         return $requestUri;
     }
 
-    private function isLastResponseUrl(string $url, UriInterface $lastRequestUri): bool
+    private function isLastResponseUrl(UriInterface $uri, UriInterface $lastRequestUri): bool
     {
-        $lastResponseUrl = new NormalisedUrl($lastRequestUri);
-        $comparator = new NormalisedUrl($url);
+        $uri = Normalizer::normalize($uri);
+        $lastRequestUri = Normalizer::normalize($lastRequestUri);
 
-        return (string)$lastResponseUrl == (string)$comparator;
+        return (string) $lastRequestUri === (string) $uri;
     }
 
-    /** @noinspection PhpDocMissingThrowsInspection */
     /**
      * @param ResponseInterface $response
      * @param UriInterface $lastRequestUri
      *
-     * @return string|null
+     * @return UriInterface|null
      */
-    private function getMetaRedirectUrlFromResponse(ResponseInterface $response, UriInterface $lastRequestUri)
-    {
+    private function getMetaRedirectUriFromResponse(
+        ResponseInterface $response,
+        UriInterface $lastRequestUri
+    ): ?UriInterface {
         /* @var WebPage $webPage */
         try {
             $webPage = Webpage::createFromResponse($lastRequestUri, $response);
@@ -110,7 +105,6 @@ class Resolver
         /* @var \DOMElement[] $metaRefreshElements */
         $metaRefreshElements = $inspector->querySelectorAll($selector);
 
-
         foreach ($metaRefreshElements as $metaRefreshElement) {
             if ($metaRefreshElement->hasAttribute('content')) {
                 $contentAttribute = $metaRefreshElement->getAttribute('content');
@@ -126,8 +120,6 @@ class Resolver
             return null;
         }
 
-        $absoluteUrlDeriver = new AbsoluteUrlDeriver($redirectUrl, $lastRequestUri);
-
-        return (string) $absoluteUrlDeriver->getAbsoluteUrl();
+        return AbsoluteUrlDeriver::derive($lastRequestUri, new Uri($redirectUrl));
     }
 }
