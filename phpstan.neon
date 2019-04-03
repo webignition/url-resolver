@@ -1,0 +1,4 @@
+parameters:
+  ignoreErrors:
+    - message: '#GuzzleException is not subtype of Throwable#'
+      path: %currentWorkingDirectory%/src/Resolver
