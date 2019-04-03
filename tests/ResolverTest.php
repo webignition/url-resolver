@@ -7,8 +7,10 @@ namespace webignition\Tests\Url\Resolver;
 use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
+use Psr\Http\Message\UriInterface;
 use webignition\Tests\Url\Resolver\Factory\HttpFixtureFactory;
 use GuzzleHttp\Client as HttpClient;
+use webignition\Uri\Uri;
 use webignition\Url\Resolver\Resolver;
 
 class ResolverTest extends \PHPUnit\Framework\TestCase
@@ -48,10 +50,10 @@ class ResolverTest extends \PHPUnit\Framework\TestCase
     /**
      * @dataProvider resolveHttpRedirectDataProvider
      */
-    public function testResolveHttpRedirect(array $httpFixtures, string $url, string $expectedResolvedUrl)
+    public function testResolveHttpRedirect(array $httpFixtures, UriInterface $url, UriInterface $expectedResolvedUrl)
     {
         $this->setHttpFixtures($httpFixtures);
-        $this->assertEquals($expectedResolvedUrl, $this->resolver->resolve($url));
+        $this->assertEquals((string) $expectedResolvedUrl, (string) $this->resolver->resolve($url));
     }
 
     public function resolveHttpRedirectDataProvider(): array
@@ -64,40 +66,40 @@ class ResolverTest extends \PHPUnit\Framework\TestCase
                     new Response(301, ['location' => 'http://example.com/foo']),
                     $successResponse,
                 ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/foo',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/foo'),
             ],
             'single 302' => [
                 'httpFixtures' => [
                     new Response(302, ['location' => 'http://example.com/foo']),
                     $successResponse,
                 ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/foo',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/foo'),
             ],
             'single 303' => [
                 'httpFixtures' => [
                     new Response(303, ['location' => 'http://example.com/foo']),
                     $successResponse,
                 ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/foo',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/foo'),
             ],
             'single 307' => [
                 'httpFixtures' => [
                     new Response(307, ['location' => 'http://example.com/foo']),
                     $successResponse,
                 ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/foo',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/foo'),
             ],
             'single 308' => [
                 'httpFixtures' => [
                     new Response(308, ['location' => 'http://example.com/foo']),
                     $successResponse,
                 ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/foo',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/foo'),
             ],
             'multiple 301' => [
                 'httpFixtures' => [
@@ -106,8 +108,8 @@ class ResolverTest extends \PHPUnit\Framework\TestCase
                     new Response(301, ['location' => 'http://example.com/foobar']),
                     $successResponse,
                 ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/foobar',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/foobar'),
             ],
             'too many redirects' => [
                 'httpFixtures' => [
@@ -118,8 +120,8 @@ class ResolverTest extends \PHPUnit\Framework\TestCase
                     new Response(301, ['location' => 'http://example.com/bar']),
                     new Response(301, ['location' => 'http://example.com/foobar']),
                 ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/bar',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/bar'),
             ],
         ];
     }
@@ -127,10 +129,10 @@ class ResolverTest extends \PHPUnit\Framework\TestCase
     /**
      * @dataProvider resolveDataProvider
      */
-    public function testResolve(array $httpFixtures, string $url, string $expectedResolvedUrl)
+    public function testResolve(array $httpFixtures, UriInterface $url, UriInterface $expectedResolvedUrl)
     {
         $this->setHttpFixtures($httpFixtures);
-        $this->assertEquals($expectedResolvedUrl, $this->resolver->resolve($url));
+        $this->assertEquals((string) $expectedResolvedUrl, (string) $this->resolver->resolve($url));
     }
 
     public function resolveDataProvider(): array
@@ -143,24 +145,24 @@ class ResolverTest extends \PHPUnit\Framework\TestCase
                 'httpFixtures' => [
                     $successResponse,
                 ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/'),
             ],
             '404' => [
                 'httpFixtures' => [
                     $notFoundResponse,
                     $notFoundResponse,
                 ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/'),
             ],
             '404 initially, then 200' => [
                 'httpFixtures' => [
                     $notFoundResponse,
                     $successResponse
                 ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/'),
             ],
             '404 initially, then 301, then 200' => [
                 'httpFixtures' => [
@@ -168,64 +170,64 @@ class ResolverTest extends \PHPUnit\Framework\TestCase
                     new Response(301, ['location' => 'http://example.com/foo']),
                     $successResponse,
                 ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/'),
             ],
             'meta redirect success' => [
                 'httpFixtures' => [
                     HttpFixtureFactory::createMetaRedirectResponse('text/html', 'http://example.com/foo'),
                     $successResponse,
                 ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/foo',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/foo'),
             ],
             'meta redirect invalid content type' => [
                 'httpFixtures' => [
                     HttpFixtureFactory::createMetaRedirectResponse('text/plain', 'http://example.com/foo'),
                     $successResponse,
                 ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/'),
             ],
             'meta redirect unparseable content type' => [
                 'httpFixtures' => [
                     HttpFixtureFactory::createMetaRedirectResponse('text/pl a i n', 'http://example.com/foo'),
                     $successResponse,
                 ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/'),
             ],
             'meta redirect no url' => [
                 'httpFixtures' => [
                     HttpFixtureFactory::createMetaRedirectResponse('text/html'),
                     $successResponse,
                 ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/'),
             ],
             'meta redirect same url' => [
                 'httpFixtures' => [
                     HttpFixtureFactory::createMetaRedirectResponse('text/html', 'http://example.com/bar/'),
                     $successResponse,
                 ],
-                 'url' => 'http://example.com/bar/',
-                'expectedResolvedUrl' => 'http://example.com/bar/',
+                'url' => new Uri('http://example.com/bar/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/bar/'),
             ],
             'meta redirect relative url' => [
                 'httpFixtures' => [
                     HttpFixtureFactory::createMetaRedirectResponse('text/html', '/foobar/'),
                     $successResponse,
                 ],
-                'url' => 'http://example.com/',
-                'expectedResolvedUrl' => 'http://example.com/foobar/',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/foobar/'),
             ],
             'meta redirect protocol-relative url' => [
                 'httpFixtures' => [
                     HttpFixtureFactory::createMetaRedirectResponse('text/html', '//example.com/bar/'),
                     $successResponse,
                 ],
-                'url' => 'https://example.com/',
-                'expectedResolvedUrl' => 'https://example.com/bar/',
+                'url' => new Uri('https://example.com/'),
+                'expectedResolvedUrl' => new Uri('https://example.com/bar/'),
             ],
             'meta redirect within document containing unparseable content type' => [
                 'httpFixtures' => [
@@ -236,8 +238,8 @@ class ResolverTest extends \PHPUnit\Framework\TestCase
                     ),
                     $successResponse,
                 ],
-                'url' => 'https://example.com/',
-                'expectedResolvedUrl' => 'https://example.com/bar/',
+                'url' => new Uri('http://example.com/'),
+                'expectedResolvedUrl' => new Uri('http://example.com/bar/'),
             ],
         ];
     }
