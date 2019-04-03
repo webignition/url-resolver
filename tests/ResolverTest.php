@@ -8,7 +8,7 @@ use GuzzleHttp\Handler\MockHandler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
 use Psr\Http\Message\UriInterface;
-use webignition\Tests\Url\Resolver\Factory\HttpFixtureFactory;
+use webignition\Url\Resolver\Tests\Factory\HttpFixtureFactory;
 use GuzzleHttp\Client as HttpClient;
 use webignition\Uri\Uri;
 use webignition\Url\Resolver\Resolver;
